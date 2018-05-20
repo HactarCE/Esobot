@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 
-import logging
+DEV = True
 
-import commands
+from discord.ext import commands
+import logging
+import os
+import sys
+import traceback
+
+from utils import l, make_embed
+import cogs
 
 LOG_LEVEL_API = logging.WARNING
 LOG_LEVEL_BOT = logging.INFO
-# LOG_FMT = '[%(asctime)s] [%(levelname)-8s] [%(name)s] %(message)s'
 LOG_FMT = '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s'
+
 
 try:
     import discord
@@ -23,32 +30,68 @@ except IOError:
     print("Create a file token.txt and place the bot token in it.")
     exit(1)
 
-logging.basicConfig(format=LOG_FMT)
+
+if DEV:
+    logging.basicConfig(format=LOG_FMT)
+else:
+    logging.basicConfig(format=LOG_FMT, filename='bot.log')
 logging.getLogger('discord').setLevel(LOG_LEVEL_API)
-l = logging.getLogger('bot')
 l.setLevel(LOG_LEVEL_BOT)
 
-client = discord.Client()
+
+try:
+    with open('admin.txt') as f:
+        owner_id = int(f.read())
+except IOError:
+    owner_id = None
+
+bot = commands.Bot(
+    command_prefix=commands.when_mentioned_or('!'),
+    case_insensitive=True,
+    owner_id=owner_id
+)
 
 
-@client.event
+@bot.listen()
 async def on_ready():
-    l.debug('on_ready')
-    l.info(f"Logged in as {client.user.name}#{client.user.discriminator}")
+    l.info(f"Logged in as {bot.user.name}#{bot.user.discriminator}")
 
 
-@client.event
+@bot.listen()
+async def on_resume():
+    l.info("Resumed session")
+
+
+@bot.listen()
+async def on_error(event, ctx, *args, **kwargs):
+    print(event, ctx, args, kwargs)
+    _, exc, tb = sys.exc_info()
+    l.error(f'"{str(exc)}" while executing {event} (args: {args}; kwargs: {kwargs})')
+    if isinstance(exc, commands.MissingRequiredArgument):
+        # await
+        pass
+    else:
+        await bot.send_message(await bot.get_user_info(bot.owner_id), embed=make_embed(
+            title="Error",
+            description=str(exc),
+            fields=[
+                ("Event", f'```\n{event}\n```', True),
+                ("Args", f'```\n{repr(args)}\n```', True),
+                ("Keyword Args", f'```\n{repr(kwargs)}\n```', True),
+                ("Traceback", f'```\n{"".join(traceback.format_tb(tb))}\n```')
+            ]
+        ))
+
+
+@bot.listen()
 async def on_message(message):
-    l.debug(f"on_message{str(message)}")
-    l.info(f"[#{message.channel.id if message.channel.is_private else message.channel.name}] {message.author.display_name}: {message.content}")
-    cmd = commands.get_matching_command(message)
-    print(cmd)
-    if cmd:
-        await cmd.run_if_matches(client, message)
+    is_private = message.type in (discord.ChannelType.private, discord.ChannelType.group)
+    l.info(f"[#{message.channel.id if is_private else message.channel.name}] {message.author.display_name}: {message.content}")
 
 
-async def on_command(command, message):
-    l.debug('on_command' + command)
-    args = command.split()
-
-client.run(TOKEN)
+if __name__ == '__main__':
+    # EXTENSIONS = ['admin', 'general']
+    EXTENSIONS = ['admin', 'general']
+    for extension in EXTENSIONS:
+        bot.load_extension('cogs.' + extension)
+    bot.run(TOKEN)
