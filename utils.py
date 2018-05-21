@@ -40,3 +40,31 @@ async def react_yes_no(ctx, m, timeout=30):
     await m.remove_reaction(emoji.CONFIRM, ctx.me)
     await m.remove_reaction(emoji.CANCEL, ctx.me)
     return result
+
+
+async def report_error(ctx, exc):
+    if isinstance(ctx.channel, discord.DMChannel):
+        guild_name = "N/A"
+        channel_name = f"DM"
+    elif isinstance(ctx.channel, discord.GroupChannel):
+        guild_name = "N/A"
+        channel_name = f"Group with {len(ctx.channel.recipients)} members (id={ctx.channel.id})"
+    else:
+        guild_name = ctx.guild.name
+        channel_name = f"#{ctx.channel.name}"
+    user = ctx.author
+    traceback = ''.join(traceback.format_tb(exc.original.__traceback__))
+    await ctx.bot.get_user(ctx.bot.owner_id).send(embed=make_embed(
+        color=colors.EMBED_ERROR,
+        title="Error",
+        description=str(exc),
+        fields=[
+            ("Guild", guild_name, True),
+            ("Channel", channel_name, True),
+            ("User", f"{user.name}#{user.discriminator} (A.K.A. {user.display_name})"),
+            ("Message Content", f"{ctx.message.content}"),
+            ("Args", f"```\n{repr(args)}\n```" if args else "None", True),
+            ("Keyword Args", f"```\n{repr(kwargs)}\n```" if kwargs else "None", True),
+            ("Traceback", f"```\n{traceback}\n```")
+        ]
+    ))

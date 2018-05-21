@@ -1,12 +1,12 @@
 from discord.ext import commands
 import asyncio
 import os
-import subprocess
+from subprocess import PIPE
 import sys
-import time
 
-from utils import l, make_embed, react_yes_no
+from . import ALL_EXTENSIONS
 from constants import colors, emoji, info
+from utils import l, make_embed, react_yes_no, report_error
 
 
 class Admin(object):
@@ -69,9 +69,7 @@ class Admin(object):
     @commands.command()
     async def update(self, ctx):
         """Runs `git pull` to update the bot."""
-        subproc = await asyncio.create_subprocess_exec(
-            'git', 'pull', stdout=subprocess.PIPE
-        )
+        subproc = await asyncio.create_subprocess_exec('git', 'pull', stdout=PIPE)
         embed = make_embed(
             color=colors.EMBED_INFO,
             title="Running `git pull`"
@@ -82,12 +80,71 @@ class Admin(object):
         stdout, stderr = await subproc.communicate()
         fields = []
         if stdout:
-            embed.add_field(name="Stdout", value=f"```\n{stdout.decode('utf-8')}\n```", inline=False)
+            embed.add_field(
+                name="Stdout",
+                value=f"```\n{stdout.decode('utf-8')}\n```",
+                inline=False
+            )
         if stderr:
-            embed.add_field(name="Stderr", value=f"```\n{stderr.decode('utf-8')}\n```", inline=False)
+            embed.add_field(
+                name="Stderr",
+                value=f"```\n{stderr.decode('utf-8')}\n```",
+                inline=False
+            )
         if not (stdout or stderr):
-            embed.description = "Done."
+            embed.description = "`git pull` completed."
         await m.edit(embed=embed)
+        await self.reload_(ctx, '*')
+
+    @commands.command()
+    async def reload(self, ctx, *extensions):
+        """Reload an extension.
+
+        Use `reload *` to reload all extensions.
+
+        This command is automatically run by `update`.
+        """
+        if not extensions:
+            ctx.send(embed=make_embed(
+                color=colors.EMBED_ERROR,
+                title="Error",
+                description="No modules supplied."
+            ))
+        await self.reload_(ctx, *extensions)
+
+    async def reload_(self, ctx, *extensions):
+        if '*' in extensions:
+            title = "Reloading all extensions"
+        elif len(extensions) > 1:
+            title = "Reloading extensions"
+        else:
+            title = f"Reloading `{extensions[0]}`"
+        embed = make_embed(
+            color=colors.EMBED_INFO,
+            title=title
+        )
+        m = await ctx.send(embed=embed)
+        color = colors.EMBED_SUCCESS
+        description = ''
+        if '*' in extensions:
+            extensions = ALL_EXTENSIONS
+        for extension in extensions:
+            self.bot.unload_extension('cogs.' + extension)
+            try:
+                self.bot.load_extension('cogs.' + extension)
+            except:
+                color = colors.EMBED_ERROR
+                description += f"Failed to load `{extension}`.\n"
+                _, exc, _ = sys.exc_info()
+                if not isinstance(exc, ImportError):
+                    await report_error(ctx, exc)
+        if not description:
+            description = "Done."
+        await m.edit(embed=make_embed(
+            color=color,
+            title=title.replace("ing", "ed"),
+            description=description
+        ))
 
 
 def setup(bot):
