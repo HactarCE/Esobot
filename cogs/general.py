@@ -47,7 +47,7 @@ class General(object):
             if command is None:
                 await ctx.send(embed=make_embed(
                     color=colors.EMBED_ERROR,
-                    title="Command Help",
+                    title="Command help",
                     description=f"Could not find command `{command_name}`."
                 ))
             elif await command.can_run(ctx):
@@ -68,14 +68,14 @@ class General(object):
                     fields.append(("Miscallenous", misc))
                 await ctx.send(embed=make_embed(
                     color=colors.EMBED_HELP,
-                    title="Command Help",
+                    title="Command help",
                     description=f'`{command.name}`',
                     fields=fields
                 ))
             else:
                 await ctx.send(embed=make_embed(
                     color=colors.EMBED_ERROR,
-                    title="Command Help",
+                    title="Command help",
                     description=f"You have insufficient permission to access `{command_name}`."
                 ))
         else:
@@ -98,7 +98,7 @@ class General(object):
             mention = ctx.me.mention
             await ctx.send(embed=make_embed(
                 color=colors.EMBED_HELP,
-                title="Command List",
+                title="Command list",
                 description=f"Invoke a command by prefixing it with `{prefix}` or {mention}. Use `{prefix}{ctx.command.name} [command]` to get help on a specific command.",
                 fields=fields
             ))
