@@ -4,12 +4,10 @@ DEV = True
 
 from discord.ext import commands
 import logging
-import os
-import sys
 import traceback
 
+from constants import colors
 from utils import l, make_embed
-import cogs
 
 LOG_LEVEL_API = logging.WARNING
 LOG_LEVEL_BOT = logging.INFO
@@ -45,8 +43,10 @@ try:
 except IOError:
     owner_id = None
 
+COMMAND_PREFIX = '!'
+
 bot = commands.Bot(
-    command_prefix=commands.when_mentioned_or('!'),
+    command_prefix=commands.when_mentioned_or(COMMAND_PREFIX),
     case_insensitive=True,
     owner_id=owner_id
 )
@@ -62,35 +62,85 @@ async def on_resume():
     l.info("Resumed session")
 
 
+error_descriptions = {
+    commands.MissingRequiredArgument: lambda exc: f"Missing required argument: {exc.param.name}.",
+}
+
+
 @bot.listen()
-async def on_error(event, ctx, *args, **kwargs):
-    print(event, ctx, args, kwargs)
-    _, exc, tb = sys.exc_info()
-    l.error(f'"{str(exc)}" while executing {event} (args: {args}; kwargs: {kwargs})')
-    if isinstance(exc, commands.MissingRequiredArgument):
-        # await
-        pass
+async def on_command_error(ctx, exc, *args, **kwargs):
+    command_name = ctx.command.name if ctx.command else 'unknown command'
+    l.error(f"'{str(exc)}' encountered while executing {command_name} (args: {args}; kwargs: {kwargs})")
+    if isinstance(exc, commands.UserInputError):
+        if isinstance(exc, commands.MissingRequiredArgument):
+            description = f"Missing required argument `{exc.param.name}`."
+        elif isinstance(exc, commands.TooManyArguments):
+            description = f"Too many arguments."
+        elif isinstance(exc, commands.BadArgument):
+            description = f"Bad argument:\n```\n{str(exc)}\n```"
+        else:
+            description = f"Bad user input."
+        description += "\n\nRun `{COMMAND_PREFIX}help {command_name}` to view the required arguments."
+    elif isinstance(exc, commands.CommandNotFound):
+        description = f"Could not find command `{ctx.invoked_with.split()[0]}`."
+    elif isinstance(exc, commands.CheckFailure):
+        if isinstance(exc, commands.NoPrivateMessage):
+            description = f"Cannot be run in a private message channel."
+        elif isinstance(exc, commands.MissingPermissions) or isinstance(exc, commands.BotMissingPermissions):
+            if isinstance(exc, commands.MissingPermissions):
+                description = f"You don't have permission to do that."
+            elif isinstance(exc, commands.BotMissingPermissions):
+                description = f"I don't have permission to do that."
+            missing_perms = '\n'.join(exc.missing_perms)
+            description += f" Missing:\n```\n{missing_perms}\n```"
+        else:
+            description = f"Command check failed."
+    elif isinstance(exc, commands.DisabledCommand):
+        description = f"That command is disabled."
+    elif isinstance(exc, commands.CommandOnCooldown):
+        description = f"That command is on cooldown."
     else:
-        await bot.send_message(await bot.get_user_info(bot.owner_id), embed=make_embed(
+        description = f"Sorry, something went wrong.\n\nA team of highly trained monkeys has been dispatched to deal with the situation."
+        if isinstance(ctx.channel, discord.DMChannel):
+            guild_name = "N/A"
+            channel_name = f"DM"
+        elif isinstance(ctx.channel, discord.GroupChannel):
+            guild_name = "N/A"
+            channel_name = f"Group with {len(ctx.channel.recipients)} members (id={ctx.channel.id})"
+        else:
+            guild_name = ctx.guild.name
+            channel_name = f"#{ctx.channel.name}"
+        user = ctx.author
+        traceback = ''.join(traceback.format_tb(exc.original.__traceback__))
+        await ctx.bot.get_user(ctx.bot.owner_id).send(embed=make_embed(
+            color=colors.EMBED_ERROR,
             title="Error",
             description=str(exc),
             fields=[
-                ("Event", f'```\n{event}\n```', True),
-                ("Args", f'```\n{repr(args)}\n```', True),
-                ("Keyword Args", f'```\n{repr(kwargs)}\n```', True),
-                ("Traceback", f'```\n{"".join(traceback.format_tb(tb))}\n```')
+                ("Guild", guild_name, True),
+                ("Channel", channel_name, True),
+                ("User", f"{user.name}#{user.discriminator} (A.K.A. {user.display_name})"),
+                ("Message Content", f"{ctx.message.content}"),
+                ("Args", f"```\n{repr(args)}\n```" if args else "None", True),
+                ("Keyword Args", f"```\n{repr(kwargs)}\n```" if kwargs else "None", True),
+                ("Traceback", f"```\n{traceback}\n```")
             ]
         ))
+    await ctx.send(embed=make_embed(
+        color=colors.EMBED_ERROR,
+        title="Error",
+        description=description
+    ))
 
 
 @bot.listen()
 async def on_message(message):
-    is_private = message.type in (discord.ChannelType.private, discord.ChannelType.group)
-    l.info(f"[#{message.channel.id if is_private else message.channel.name}] {message.author.display_name}: {message.content}")
+    ch = message.channel
+    is_private = isinstance(ch, discord.DMChannel) or isinstance(ch, discord.GroupChannel)
+    l.info(f"[#{ch.id if is_private else ch.name}] {message.author.display_name}: {message.content}")
 
 
 if __name__ == '__main__':
-    # EXTENSIONS = ['admin', 'general']
     EXTENSIONS = ['admin', 'general']
     for extension in EXTENSIONS:
         bot.load_extension('cogs.' + extension)
