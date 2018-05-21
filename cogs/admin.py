@@ -18,7 +18,9 @@ class Admin(object):
     async def __local_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
 
-    @commands.command()
+    @commands.command(
+        aliases=['quit']
+    )
     async def shutdown(self, ctx):
         """Shuts down the bot.
 
@@ -28,6 +30,7 @@ class Admin(object):
 
     @commands.command(
         name='shutdown!',
+        aliases=['quit!'],
         hidden=True
     )
     async def shutdown_noconfirm(self, ctx):
@@ -62,7 +65,29 @@ class Admin(object):
         if result is 'y':
             l.info(f"Shutting down at the command of {ctx.message.author.display_name}...")
             await self.bot.logout()
-            exit()
+
+    @commands.command()
+    async def update(self, ctx):
+        """Runs `git pull` to update the bot."""
+        subproc = await asyncio.create_subprocess_exec(
+            'git', 'pull', stdout=subprocess.PIPE
+        )
+        embed = make_embed(
+            color=colors.EMBED_INFO,
+            title="Running `git pull`"
+        )
+        m = await ctx.send(embed=embed)
+        returncode = await subproc.wait()
+        embed.color = colors.EMBED_ERROR if returncode else colors.EMBED_SUCCESS
+        stdout, stderr = await subproc.communicate()
+        fields = []
+        if stdout:
+            embed.add_field(name="Stdout", value=f"```\n{stdout.decode('utf-8')}\n```", inline=False)
+        if stderr:
+            embed.add_field(name="Stderr", value=f"```\n{stderr.decode('utf-8')}\n```", inline=False)
+        if not (stdout or stderr):
+            embed.description = "Done."
+        await m.edit(embed=embed)
 
 
 def setup(bot):
