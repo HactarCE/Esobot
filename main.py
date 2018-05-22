@@ -4,7 +4,7 @@ DEV = True
 
 from discord.ext import commands
 import logging
-import traceback
+import sys
 
 from cogs import ALL_EXTENSIONS
 from constants import colors
@@ -53,12 +53,12 @@ bot = commands.Bot(
 )
 
 
-@bot.listen()
+@bot.event
 async def on_ready():
     l.info(f"Logged in as {bot.user.name}#{bot.user.discriminator}")
 
 
-@bot.listen()
+@bot.event
 async def on_resume():
     l.info("Resumed session")
 
@@ -68,7 +68,7 @@ error_descriptions = {
 }
 
 
-@bot.listen()
+@bot.event
 async def on_command_error(ctx, exc, *args, **kwargs):
     command_name = ctx.command.name if ctx.command else 'unknown command'
     l.error(f"'{str(exc)}' encountered while executing '{command_name}' (args: {args}; kwargs: {kwargs})")
@@ -102,7 +102,7 @@ async def on_command_error(ctx, exc, *args, **kwargs):
         description = f"That command is on cooldown."
     else:
         description = f"Sorry, something went wrong.\n\nA team of highly trained monkeys has been dispatched to deal with the situation."
-        await report_error(ctx, exc, *args, **kwargs)
+        await report_error(ctx, exc.original, *args, **kwargs)
     await ctx.send(embed=make_embed(
         color=colors.EMBED_ERROR,
         title="Error",
@@ -110,11 +110,11 @@ async def on_command_error(ctx, exc, *args, **kwargs):
     ))
 
 
-@bot.listen()
+@bot.event
 async def on_error(event_method, *args, **kwargs):
-    exc = sys.exc_info()
+    _, exc, _ = sys.exc_info()
     l.error(f"'{str(exc)}' encountered during '{event_method}' (args: {args}; kwargs: {kwargs})")
-    await report_error(None, exc, *args, event_method=event_method, **kwargs)
+    await report_error(None, exc, *args, bot=bot, event_method=event_method, **kwargs)
 
 
 @bot.listen()

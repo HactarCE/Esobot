@@ -43,7 +43,7 @@ async def react_yes_no(ctx, m, timeout=30):
     return result
 
 
-async def report_error(ctx, exc, *args, **kwargs):
+async def report_error(ctx, exc, *args, bot=None, **kwargs):
     if ctx:
         if isinstance(ctx.channel, discord.DMChannel):
             guild_name = "N/A"
@@ -55,7 +55,6 @@ async def report_error(ctx, exc, *args, **kwargs):
             guild_name = ctx.guild.name
             channel_name = f"#{ctx.channel.name}"
         user = ctx.author
-        tb = ''.join(traceback.format_tb(exc.original.__traceback__))
         fields = [
             ("Guild", guild_name, True),
             ("Channel", channel_name, True),
@@ -64,12 +63,15 @@ async def report_error(ctx, exc, *args, **kwargs):
         ]
     else:
         fields = []
+    tb = ''.join(traceback.format_tb(exc.__traceback__))
     fields += [
         ("Args", f"```\n{repr(args)}\n```" if args else "None", True),
         ("Keyword Args", f"```\n{repr(kwargs)}\n```" if kwargs else "None", True),
         ("Traceback", f"```\n{tb}\n```")
     ]
-    await ctx.bot.get_user(ctx.bot.owner_id).send(embed=make_embed(
+    if not bot:
+        bot = ctx.bot
+    await bot.get_user(bot.owner_id).send(embed=make_embed(
         color=colors.EMBED_ERROR,
         title="Error",
         description=f'`{str(exc)}`',

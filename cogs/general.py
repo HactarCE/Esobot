@@ -104,7 +104,7 @@ class General(object):
             ))
 
     @commands.command(
-        aliases=['info']
+        aliases=['i', 'info']
     )
     async def about(self, ctx):
         await ctx.send(embed=make_embed(
