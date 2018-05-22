@@ -37,7 +37,7 @@ class General(object):
     @commands.command(
         aliases=['h', 'man'],
     )
-    async def help(self, ctx, *, command_name=None):
+    async def help(self, ctx, *, command_name: str=None):
         """Display a list of all commands or display information about a specific command."""
         prefix = await self.bot.get_prefix(ctx.message)
         if isinstance(prefix, list):
@@ -111,7 +111,6 @@ class General(object):
             title=f"About {info.NAME}",
             description=info.ABOUT_TEXT,
             fields=[
-                # ("Version", info.VERSION, True),
                 ("Author", f"[{info.AUTHOR}]({info.AUTHOR_LINK})", True),
                 ("GitHub Repository", info.GITHUB_LINK, True)
             ],

@@ -97,20 +97,21 @@ class Admin(object):
         await self.reload_(ctx, '*')
 
     @commands.command()
-    async def reload(self, ctx, *extensions):
+    async def reload(self, ctx, *, extensions: str):
         """Reload an extension.
 
         Use `reload *` to reload all extensions.
 
         This command is automatically run by `update`.
         """
-        if not extensions:
-            ctx.send(embed=make_embed(
+        if extensions:
+            await self.reload_(ctx, *extensions.split())
+        else:
+            await ctx.send(embed=make_embed(
                 color=colors.EMBED_ERROR,
                 title="Error",
                 description="No modules supplied."
             ))
-        await self.reload_(ctx, *extensions)
 
     async def reload_(self, ctx, *extensions):
         if '*' in extensions:
@@ -137,7 +138,7 @@ class Admin(object):
                 description += f"Failed to load `{extension}`.\n"
                 _, exc, _ = sys.exc_info()
                 if not isinstance(exc, ImportError):
-                    await report_error(ctx, exc)
+                    await report_error(ctx, exc, *extensions)
         if not description:
             description = "Done."
         await m.edit(embed=make_embed(

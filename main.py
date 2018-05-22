@@ -71,7 +71,7 @@ error_descriptions = {
 @bot.listen()
 async def on_command_error(ctx, exc, *args, **kwargs):
     command_name = ctx.command.name if ctx.command else 'unknown command'
-    l.error(f"'{str(exc)}' encountered while executing {command_name} (args: {args}; kwargs: {kwargs})")
+    l.error(f"'{str(exc)}' encountered while executing '{command_name}' (args: {args}; kwargs: {kwargs})")
     if isinstance(exc, commands.UserInputError):
         if isinstance(exc, commands.MissingRequiredArgument):
             description = f"Missing required argument `{exc.param.name}`."
@@ -102,12 +102,19 @@ async def on_command_error(ctx, exc, *args, **kwargs):
         description = f"That command is on cooldown."
     else:
         description = f"Sorry, something went wrong.\n\nA team of highly trained monkeys has been dispatched to deal with the situation."
-        await report_error(ctx, exc)
+        await report_error(ctx, exc, *args, **kwargs)
     await ctx.send(embed=make_embed(
         color=colors.EMBED_ERROR,
         title="Error",
         description=description
     ))
+
+
+@bot.listen()
+async def on_error(event_method, *args, **kwargs):
+    exc = sys.exc_info()
+    l.error(f"'{str(exc)}' encountered during '{event_method}' (args: {args}; kwargs: {kwargs})")
+    await report_error(None, exc, *args, event_method=event_method, **kwargs)
 
 
 @bot.listen()
