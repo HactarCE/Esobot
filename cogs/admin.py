@@ -97,7 +97,7 @@ class Admin(object):
         await self.reload_(ctx, '*')
 
     @commands.command()
-    async def reload(self, ctx, extensions: str = '*'):
+    async def reload(self, ctx, *, extensions: str = '*'):
         """Reload an extension.
 
         Use `reload *` to reload all extensions.
@@ -126,14 +126,14 @@ class Admin(object):
             self.bot.unload_extension('cogs.' + extension)
             try:
                 self.bot.load_extension('cogs.' + extension)
+                description += f"Successfully loaded `{extension}`.\n"
             except:
                 color = colors.EMBED_ERROR
                 description += f"Failed to load `{extension}`.\n"
                 _, exc, _ = sys.exc_info()
                 if not isinstance(exc, ImportError):
                     await report_error(ctx, exc, *extensions)
-        if not description:
-            description = "Done."
+        description += "Done."
         await m.edit(embed=make_embed(
             color=color,
             title=title.replace("ing", "ed"),
