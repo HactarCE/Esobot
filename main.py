@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-DEV = True
-
 from discord.ext import commands
 import logging
 import sys
 
 from cogs import ALL_EXTENSIONS
-from constants import colors
+from constants import colors, info
 from utils import l, make_embed, report_error
 
 LOG_LEVEL_API = logging.WARNING
@@ -30,7 +28,7 @@ except IOError:
     exit(1)
 
 
-if DEV:
+if info.DEV:
     logging.basicConfig(format=LOG_FMT)
 else:
     logging.basicConfig(format=LOG_FMT, filename='bot.log')
