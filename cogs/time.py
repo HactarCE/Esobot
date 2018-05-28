@@ -1,10 +1,11 @@
-import discord
-import asyncio
-
-from discord.ext import commands
 from collections import defaultdict
-from utils import make_embed
+from discord.ext import commands
+import asyncio
+import discord
+import re
+
 from constants import colors
+from utils import make_embed
 
 class Time(object):
     """Commands related to time and delaying messages."""
@@ -29,40 +30,38 @@ class Time(object):
         aliases=["pw", "pwhen", "pingw"]
     )
     async def pingwhen(self, ctx, member: discord.Member, *, criteria):
-        """Ping someone when certain critera is met.
-        `criteria` should be a comma-seperated list of `name=value`, where `name` is one of the following:
-        
-        `activity` - in which case `value` is the name of the activity and the criteria will be true once their activity is the same as the given value.
-        `status` - in which case `value` is the name of the status and the criteria will be true once their status matches the given status.
-        These values can be prepended with `not` to invert them, or you can put multiple criteria in the same place and seperate them with `or` to make the criteria count if any of the contained criteria are true.
-        """
+        """Ping someone when certain critera are met.
+        `criteria` should be a list of criteria, each separated either by `or` or `and`. (`or` takes precedence over `and`; thus `A and B or C` would be parsed as `A and (B or C)`.) Each criterium is of the form `name=value`, and can be preceded by `not` to invert it. The following `name`s are supported:
+
+        `activity` \N{EM_DASH} `value` is the name of an activity (e.g. a game)
+        `status` \N{EM_DASH} `value` is one of `online`, `offline`, `idle`/`away`, `dnd`.
+        """ # TODO add examples and add support for 'away'
         possible_criteria = {
-            "activity": self.activity,
-            "status": self.status
+            'activity': self.activity,
+            'status': self.status
         }
-        criteria_list = criteria.split(",")
-        criteria_list_ = []
-        for criteria_ in criteria_list:
-            criterias = criteria_.split(" or ")
-            criteria_list__ = []
-            for criteria__ in criterias:
-                criteria___ = criteria__.split("=")
+        and_criteria = []
+        for and_criterium in re.split(r"\s+and\s+", criteria):
+            or_criteria = []
+            for or_criterium in re.split(r"\s+or\s+", and_criterium):
                 try:
-                    criteria_list__.append((possible_criteria[criteria___[0].strip()], 
-                                           criteria___[1].strip()))
+                    name, value = re.split("\s*=\s*", or_criterium)
+                    and_criteria.append((possible_criteria[name], value))
                 except KeyError:
-                    embed = make_embed(title="Error",
-                                       description="Invalid criteria.",
-                                       color=colors.EMBED_ERROR)
-                    await ctx.send(embed=embed)
+                    await ctx.send(embed=make_embed(
+                        color=colors.EMBED_ERROR,
+                        title="Error",
+                        description=f"Invalid criterium: {or_criterium}"
+                    ))
                     return
-            criteria_list_.append(criteria_list__)
+            and_criteria.append()
         self.events[member].append((criteria_list_, ctx.author, ctx.channel))
         criteria_message = "\n".join(["\N{BULLET} " + " or ".join([y[0].__name__ + " = " + y[1] for y in x]) for x in criteria_list_])
-        embed = make_embed(title=f"Scheduled a ping for {member.name}",
-                           description=criteria_message,
-                           color=colors.EMBED_SUCCESS)
-        await ctx.send(embed=embed)
+        await ctx.send(embed=make_embed(
+            color=colors.EMBED_SUCCESS,
+            title=f"Scheduled a ping for {member.name}",
+            description=criteria_message
+        ))
 
     async def loop(self):
         await self.bot.wait_until_ready()
