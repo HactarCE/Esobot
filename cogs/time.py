@@ -65,7 +65,7 @@ class Time(object):
         await ctx.send(embed=embed)
 
     async def loop(self):
-        self.bot.wait_until_ready()
+        await self.bot.wait_until_ready()
         while True:
             events_copy = self.events.copy()
             for member in self.events:
