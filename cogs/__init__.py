@@ -1,3 +1,3 @@
 ALL_EXTENSIONS = [
-    'admin', 'general', 'esolangs'
+    'admin', 'general', 'esolangs', 'time'
 ]
