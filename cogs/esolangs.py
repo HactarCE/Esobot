@@ -17,15 +17,21 @@ class Esolangs(object):
     @commands.command(
         aliases=['ew', 'w', 'wiki']
     )
-    async def esowiki(self, ctx, esolang_name):
+    async def esowiki(self, ctx, *, esolang_name):
         """Link to the Esolang Wiki page for an esoteric programming langauge."""
         url = f"https://esolangs.org/wiki/{parse.quote(esolang_name)}"
+        # npr = network path reference (https://stackoverflow.com/a/4978266/4958484)
+        npr = f"//esolangs.org/wiki/{parse.quote(esolang_name.replace(' ', '_'))}"
         async with ctx.typing():
-            async with ctx.bot.session.get(url) as response:
+            async with ctx.bot.session.get('http:' + npr) as response:
                 if response.status == 200:
-                    await ctx.send(url)
+                    await ctx.send('https:' + npr)
                 else:
-                    await ctx.send(f"{esolang_name} is not on the Esolangs wiki. Make sure the capitalization is correct.")
+                    await ctx.send(embed=make_embed(
+                        color=colors.EMBED_ERROR,
+                        title="Error",
+                        description=f"**{esolang_name.capitalize()}** is not on the Esolangs wiki. Make sure the capitalization is correct."
+                    ))
 
 
 def setup(bot):
