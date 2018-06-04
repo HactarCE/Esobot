@@ -4,7 +4,7 @@ from discord.ext import commands
 import logging
 import sys
 
-from cogs import ALL_EXTENSIONS
+from cogs import get_extensions
 from constants import colors, info
 from utils import l, make_embed, report_error
 
@@ -81,7 +81,8 @@ async def on_command_error(ctx, exc, *args, **kwargs):
             description = f"Bad user input."
         description += f"\n\nRun `{COMMAND_PREFIX}help {command_name}` to view the required arguments."
     elif isinstance(exc, commands.CommandNotFound):
-        description = f"Could not find command `{ctx.invoked_with.split()[0]}`."
+        # description = f"Could not find command `{ctx.invoked_with.split()[0]}`."
+        return
     elif isinstance(exc, commands.CheckFailure):
         if isinstance(exc, commands.NoPrivateMessage):
             description = "Cannot be run in a private message channel."
@@ -123,6 +124,6 @@ async def on_message(message):
 
 
 if __name__ == '__main__':
-    for extension in ALL_EXTENSIONS:
+    for extension in get_extensions():
         bot.load_extension('cogs.' + extension)
     bot.run(TOKEN)

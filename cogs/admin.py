@@ -4,7 +4,7 @@ import asyncio
 import os
 import sys
 
-from . import ALL_EXTENSIONS
+from . import get_extensions
 from constants import colors, emoji, info
 from utils import l, make_embed, react_yes_no, report_error
 
@@ -96,7 +96,9 @@ class Admin(object):
         await m.edit(embed=embed)
         await self.reload_(ctx, '*')
 
-    @commands.command()
+    @commands.command(
+        aliases=['r']
+    )
     async def reload(self, ctx, *, extensions: str = '*'):
         """Reload an extension.
 
@@ -121,7 +123,7 @@ class Admin(object):
         color = colors.EMBED_SUCCESS
         description = ''
         if '*' in extensions:
-            extensions = ALL_EXTENSIONS
+            extensions = get_extensions()
         for extension in extensions:
             self.bot.unload_extension('cogs.' + extension)
             try:
