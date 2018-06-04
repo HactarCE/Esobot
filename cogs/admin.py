@@ -1,7 +1,7 @@
 from discord.ext import commands
+from subprocess import PIPE
 import asyncio
 import os
-from subprocess import PIPE
 import sys
 
 from . import ALL_EXTENSIONS

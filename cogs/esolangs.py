@@ -25,7 +25,7 @@ class Esolangs(object):
                 if response.status == 200:
                     await ctx.send(url)
                 else:
-                    await ctx.send(f"{esolang_name} is not on the Esolangs wiki. Make sure you've got the capitalization correct.")
+                    await ctx.send(f"{esolang_name} is not on the Esolangs wiki. Make sure the capitalization is correct.")
 
 
 def setup(bot):

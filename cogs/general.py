@@ -1,7 +1,7 @@
 from discord.ext import commands
 
 from utils import l, make_embed
-from constants import colors, info, symbols
+from constants import colors, info
 
 
 def get_command_signature(command):
@@ -21,7 +21,7 @@ def get_command_signature(command):
                     else:
                         result += f' [{name}]'
                 elif param.kind == param.VAR_POSITIONAL:
-                    result += f' [{name}{symbols.ELLIPSIS}]'
+                    result += f' [{name}\N{HORIZONTAL ELLIPSIS}]'
                 else:
                     result += f' <{name}>'
     return result
@@ -89,9 +89,9 @@ class General(object):
                 lines = []
                 for command in sorted(self.bot.get_cog_commands(cog_name), key=lambda cmd: cmd.name):
                     if not command.hidden and (await command.can_run(ctx)):
-                        line = f'{symbols.BULLET} **`{get_command_signature(command)}`**'
+                        line = f'\N{BULLET} **`{get_command_signature(command)}`**'
                         if command.short_doc:
-                            line += f' {symbols.EM_DASH} {command.short_doc}'
+                            line += f' \N{EM DASH} {command.short_doc}'
                         lines.append(line)
                 if lines:
                     fields.append((cog_name, '\n'.join(lines)))
