@@ -19,7 +19,7 @@ class Admin(object):
         return await self.bot.is_owner(ctx.author)
 
     @commands.command(
-        aliases=['quit']
+        aliases=['die', 'q', 'quit']
     )
     async def shutdown(self, ctx):
         """Shuts down the bot.
@@ -30,7 +30,7 @@ class Admin(object):
 
     @commands.command(
         name='shutdown!',
-        aliases=['quit!'],
+        aliases=['die!', 'q!', 'quit!'],
         hidden=True
     )
     async def shutdown_noconfirm(self, ctx):
