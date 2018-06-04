@@ -1,7 +1,7 @@
 DEV = True
 
 NAME = 'Esobot'
-VERSION = '1.0.0' + ('-dev' * DEV)
+VERSION = '1.1.0' + ('-dev' * DEV)
 
 ABOUT_TEXT = f'''\
 {NAME} is an open source Discord bot created using \
