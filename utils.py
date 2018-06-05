@@ -23,6 +23,7 @@ def make_embed(*, fields=[], footer_text=None, **kwargs):
 
 async def react_yes_no(ctx, m, timeout=30):
     # TODO Add docstring and possibly rename
+    # TODO Allow user to type '!confirm'/'!y' or '!cancel'/'!n' in addition to reactions
     await m.add_reaction(emoji.CONFIRM)
     await m.add_reaction(emoji.CANCEL)
     try:

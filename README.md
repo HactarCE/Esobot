@@ -7,8 +7,11 @@ Use `!help` to view available commands.
 ## Changelog
 
 ### 1.0.1
-* Added `pingwhen` command.
-
+* Added README/changelog.
+* Fixed `esowiki` command taking too long, and improved error message if page not found
+* Added dynamic loading of extensions
+* Added `die`, `q`, and `r` aliases
+* Used `\N` unicode escapes
 
 ### 1.0.0
 * Initial release
