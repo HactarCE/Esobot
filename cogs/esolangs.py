@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import importlib
 import os
 import io
@@ -9,6 +10,8 @@ from constants import colors, info
 from utils import make_embed
 
 
+TIMEOUT = 60
+
 def clean(text):
     return text.replace("*", r"\*"
               ).replace("~", r"\~"
@@ -18,20 +21,19 @@ def clean(text):
 
 
 class DiscordInput:
-    def __init__(self, bot, channel):
-        self.bot = bot
-        self.channel = channel
+    def __init__(self, ctx):
+        self.ctx = ctx
         self.buffer = ""
 
     async def read(self, amount):
         response = []
         for _ in range(amount):
             if not self.buffer:
-                async def check(message):
-                    return (message.channel == self.channel and 
-                            message.author != self.bot.user)
-
-                message = await self.bot.wait_for("message", check=check)
+                def check(message):
+                    return (message.channel == self.ctx.channel and
+                            message.author != self.ctx.bot.user and
+                            message.author == self.ctx.author)
+                message = await self.ctx.bot.wait_for("message", check=check)
                 self.buffer = message.content + "\n"
 
             response.append(self.buffer[0])
@@ -110,10 +112,10 @@ class Esolangs(object):
 
         if not program:
             await ctx.send("Enter a program as a message or an attachment.")
-            async def check(message):
+            def check(message):
                 return (message.channel == ctx.channel and
-                       (message.content or message.attachments) and 
-                        message.author != self.bot.user)
+                       (message.content or message.attachments) and
+                        message.author == ctx.author)
             program_msg = await self.bot.wait_for("message", check=check)
             if program_msg.attachments:
                 string = io.StringIO()
@@ -123,7 +125,18 @@ class Esolangs(object):
                 program = program_msg.content
 
         console = await ctx.send("```\n```")
-        await interpreter.interpret(program, flags, DiscordInput(self.bot, ctx.channel), DiscordOutput(console))
+        try:
+            await asyncio.wait_for(
+                interpreter.interpret(
+                    program, 
+                    flags, 
+                    DiscordInput(ctx), 
+                    DiscordOutput(console)
+                ),
+                TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            await console.edit(content=f"Execution timed out after {TIMEOUT} seconds.")
 
     @interpret.command(
         aliases=["saves", "uploaded"]
