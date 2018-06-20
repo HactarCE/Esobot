@@ -65,3 +65,4 @@ async def interpret(program, _, stdin, stdout):
            if random.random() > 0.9:
                await stdout.flush()
         idx += 1
+    await stdout.flush()

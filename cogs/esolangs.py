@@ -8,12 +8,14 @@ from urllib import parse
 from constants import colors, info
 from utils import make_embed
 
+
 def clean(text):
     return text.replace("*", r"\*"
               ).replace("~", r"\~"
               ).replace("_", r"\_"
               ).replace("`", r"\`"
               ).replace("\\", "\\\\")
+
 
 class DiscordInput:
     def __init__(self, bot, channel):
@@ -146,7 +148,7 @@ class Esolangs(object):
         with open(f"programs/{attach.filename}", "wb") as f:
             f.write((language + "\n").encode())
             await attach.save(f)
-        
+
         await ctx.send(f"Successfully saved `{attach.filename}`.")
 
 def setup(bot):
