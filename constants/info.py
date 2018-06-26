@@ -1,4 +1,4 @@
-DEV = False
+DEV = True
 
 NAME = 'Esobot'
 VERSION = '1.0.1' + ('-dev' * DEV)

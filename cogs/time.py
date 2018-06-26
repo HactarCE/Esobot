@@ -1,8 +1,12 @@
+import asyncio
 import discord
+import json
+import pytz
 
-from constants import colors
+from constants import colors, channels, paths
 from utils import make_embed
 from discord.ext import commands
+from datetime import datetime
 
 
 class Time(object):
@@ -10,54 +14,88 @@ class Time(object):
 
     def __init__(self, bot):
         self.bot = bot
+        with open(paths.TIME_SAVES) as f:
+            self.time_config = json.load(f)
+
+    def get_time(self, id):
+        if str(id) not in self.time_config:
+            return None
+
+        now = datetime.now(pytz.timezone(self.time_config[str(id)]))
+        return now.strftime("%H:%M on %A, timezone %Z%z")
 
     @commands.group(
-        aliases=["pw", "pwhen", "pingw"]
+        aliases=["tz", "when", "t"],
+        invoke_without_command=True
     )
-    async def pingwhen(self, ctx):
-        """Ping someone when a certain criterium is met.
+    async def time(self, ctx, *, user: discord.Member = None):
+        user = ctx.author if not user else user
+        time = self.get_time(user.id)
 
-        If the condition does not complete after 48 hours, then the command will terminate.
-        """
+        if not time:
+            message = ("You don't have a timezone set. You can set one with `time set`." if user == ctx.author
+                  else "That user doesn't have a timezone set.")
+            await ctx.send(
+                embed=make_embed(
+                    title="Timezone not set",
+                    description=message,
+                    color=colors.EMBED_ERROR
+                )
+            )
+            return
 
-    @pingwhen.command(
-        aliases=["on"]
-    )
-    async def online(self, ctx, member: discord.Member, *, message=None):
-        message = f"{member.mention}, {ctx.author.mention} has sent you a scheduled ping." + (f" A message was attached:\n\n```\n{message}\n```" if message else "")
         await ctx.send(
             embed=make_embed(
-                title="Ping scheduled",
-                description=f"{member.mention} will be pinged when they go online with the message:\n\n{message}",
+                title=f"{user.name}'s time",
+                description=time,
                 color=colors.EMBED_SUCCESS
             )
         )
-        if member.status != discord.Status.online:
-            await self.bot.wait_for(
-                "member_update", 
-                check=lambda before, after: after.id == member.id and after.status == discord.Status.online
-            )
-        await ctx.send(message)
 
-    @pingwhen.command(
-        aliases=["nogame"]
-    )
-    async def free(self, ctx, member: discord.Member, *, message=None):
-        message = f"{member.mention}, {ctx.author.mention} has sent you a scheduled ping." + (f" A message was attached:\n\n```\n{message}\n```" if message else "")
-        await ctx.send(
-            embed=make_embed(
-                title="Ping scheduled",
-                description=f"{member.mention} will be pinged when they stop playing a game with the message:\n\n{message}",
-                color=colors.EMBED_SUCCESS
+    @time.command()
+    async def set(self, ctx, timezone="invalid"):
+        try:
+            pytz.timezone(timezone)
+            self.time_config[str(ctx.author.id)] = timezone
+            with open(paths.TIME_SAVES, "w") as f:
+                json.dump(self.time_config, f)
+            await ctx.send(
+                embed=make_embed(
+                    title="Set timezone",
+                    description=f"Your timezone is now {timezone}.",
+                    color=colors.EMBED_SUCCESS
+                )
             )
-        )
-        if member.activity:
-            await self.bot.wait_for(
-                "member_update", 
-                check=lambda before, after: after.id == member.id and after.activity == None
+        except pytz.exceptions.UnknownTimeZoneError:
+            url = "https://github.com/sdispater/pytzdata/blob/master/pytzdata/_timezones.py"
+            await ctx.send(
+                embed=make_embed(
+                    title="Invalid timezone",
+                    description=f"You either set an invalid timezone or didn't specify one at all. "
+                                 "Read a list of valid timezone names [here]({url}).",
+                    color=colors.EMBED_ERROR
+                )
             )
-        await ctx.send(message)
+
+    async def time_loop(self, channel_id):
+        await self.bot.wait_until_ready()
+
+        channel = self.bot.get_channel(channel_id)
+        await channel.purge()
+        info_msg = await channel.send("Processing times...")
+
+        while True:
+            next_msg = []
+            for id in self.time_config:
+               next_msg.append(f"<@{id}>'s time is {self.get_time(id)}")
+            if next_msg:
+                await info_msg.edit(content="\n".join(next_msg))
+            else:
+                await info_msg.edit(content="Nobody has added a timezone to the bot yet.")
+            await asyncio.sleep(30)
 
 
 def setup(bot):
+    time = Time(bot)
+    bot.loop.create_task(time.time_loop(channels.TIME_CHANNEL))
     bot.add_cog(Time(bot))
