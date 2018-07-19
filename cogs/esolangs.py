@@ -19,7 +19,6 @@ class Esolangs(object):
     )
     async def esowiki(self, ctx, *, esolang_name):
         """Link to the Esolang Wiki page for an esoteric programming langauge."""
-        url = f"https://esolangs.org/wiki/{parse.quote(esolang_name)}"
         # npr = network path reference (https://stackoverflow.com/a/4978266/4958484)
         npr = f"//esolangs.org/wiki/{parse.quote(esolang_name.replace(' ', '_'))}"
         async with ctx.typing():
@@ -30,7 +29,7 @@ class Esolangs(object):
                     await ctx.send(embed=make_embed(
                         color=colors.EMBED_ERROR,
                         title="Error",
-                        description=f"**{esolang_name.capitalize()}** is not on the Esolangs wiki. Make sure the capitalization is correct."
+                        description=f"**{esolang_name}** is not on the Esolangs wiki. Make sure the capitalization is correct."
                     ))
 
 
